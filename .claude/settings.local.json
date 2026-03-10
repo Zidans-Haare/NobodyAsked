@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest:*)",
+      "Bash(npm install:*)",
+      "Bash(npx prisma:*)",
+      "Bash(node:*)",
+      "Bash(npm show:*)",
+      "Bash(python3:*)",
+      "Bash(./node_modules/.bin/prisma:*)",
+      "Bash(npm run:*)"
+    ]
+  }
+}
