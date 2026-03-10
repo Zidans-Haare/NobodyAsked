@@ -3,25 +3,62 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-model Device {
-  id                String             @id @default(cuid())
-  name              String             @unique
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  calibrationPoints CalibrationPoint[]
+model User {
+  id           String        @id @default(cuid())
+  name         String?
+  email        String        @unique
+  password     String
+  createdAt    DateTime      @default(now())
+  calibrations Calibration[]
+  votes        Vote[]
+}
+
+model DeviceModel {
+  id           String        @id @default(cuid())
+  brand        String
+  name         String
+  type         String        @default("over-ear") // over-ear | in-ear | on-ear
+  createdAt    DateTime      @default(now())
+  calibrations Calibration[]
+
+  @@unique([brand, name])
+}
+
+model Calibration {
+  id        String             @id @default(cuid())
+  deviceId  String
+  userId    String?
+  note      String?
+  verified  Boolean            @default(false)
+  createdAt DateTime           @default(now())
+  device    DeviceModel        @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  user      User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  points    CalibrationPoint[]
+  votes     Vote[]
 }
 
 model CalibrationPoint {
-  id          String @id @default(cuid())
-  deviceId    String
-  volumeStep  Int
-  leakageDb   Float
-  ambientDb   Float
-  device      Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  id            String      @id @default(cuid())
+  calibrationId String
+  volumeStep    Int
+  leakageDb     Float
+  ambientDb     Float
+  calibration   Calibration @relation(fields: [calibrationId], references: [id], onDelete: Cascade)
 
-  @@unique([deviceId, volumeStep])
+  @@unique([calibrationId, volumeStep])
+}
+
+model Vote {
+  id            String      @id @default(cuid())
+  calibrationId String
+  userId        String
+  value         Int         // 1 = upvote, -1 = downvote
+  calibration   Calibration @relation(fields: [calibrationId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([calibrationId, userId])
 }

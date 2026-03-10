@@ -3,108 +3,108 @@ import { useState, useEffect, useCallback } from 'react'
 
 export interface CalibrationPoint {
   id: string
-  deviceId: string
+  calibrationId: string
   volumeStep: number
   leakageDb: number
   ambientDb: number
 }
 
-export interface Device {
+export interface Vote {
   id: string
-  name: string
-  createdAt: string
-  calibrationPoints: CalibrationPoint[]
+  calibrationId: string
+  userId: string
+  value: number
 }
 
-export function useDevices() {
-  const [devices, setDevices] = useState<Device[]>([])
+export interface Calibration {
+  id: string
+  deviceId: string
+  userId: string | null
+  note: string | null
+  verified: boolean
+  createdAt: string
+  points: CalibrationPoint[]
+  votes: Vote[]
+  user: { id: string; name: string | null } | null
+}
+
+export interface DeviceModel {
+  id: string
+  brand: string
+  name: string
+  type: string
+  createdAt: string
+  calibrations: Calibration[]
+}
+
+export function getBestCalibration(device: DeviceModel): Calibration | null {
+  if (!device.calibrations.length) return null
+  return device.calibrations.reduce((best, cal) => {
+    const scoreA = cal.votes.reduce((s, v) => s + v.value, 0) + (cal.verified ? 10 : 0)
+    const scoreB = best.votes.reduce((s, v) => s + v.value, 0) + (best.verified ? 10 : 0)
+    return scoreA > scoreB ? cal : best
+  })
+}
+
+export function useDevices(query = '') {
+  const [devices, setDevices] = useState<DeviceModel[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   const fetchDevices = useCallback(async () => {
+    setLoading(true)
     try {
-      const res = await fetch('/api/devices')
-      if (!res.ok) throw new Error('Failed to fetch')
+      const res = await fetch(`/api/devices${query ? `?q=${encodeURIComponent(query)}` : ''}`)
       const data = await res.json()
       setDevices(data)
-    } catch (err: any) {
-      setError(err.message)
     } finally {
       setLoading(false)
     }
+  }, [query])
+
+  useEffect(() => { fetchDevices() }, [fetchDevices])
+
+  const createDevice = useCallback(async (brand: string, name: string, type: string): Promise<DeviceModel | null> => {
+    const res = await fetch('/api/devices', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ brand, name, type }),
+    })
+    if (!res.ok) return null
+    const device = await res.json()
+    setDevices(prev => {
+      const exists = prev.find(d => d.id === device.id)
+      return exists ? prev.map(d => d.id === device.id ? device : d) : [device, ...prev]
+    })
+    return device
   }, [])
 
-  useEffect(() => {
-    fetchDevices()
-  }, [fetchDevices])
-
-  const createDevice = useCallback(async (name: string): Promise<Device | null> => {
-    try {
-      const res = await fetch('/api/devices', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
-      })
-      if (!res.ok) throw new Error('Failed to create')
-      const device = await res.json()
-      setDevices(prev => [device, ...prev])
-      return device
-    } catch (err: any) {
-      setError(err.message)
-      return null
-    }
-  }, [])
-
-  const deleteDevice = useCallback(async (id: string) => {
-    try {
-      const res = await fetch(`/api/devices/${id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('Failed to delete')
-      setDevices(prev => prev.filter(d => d.id !== id))
-    } catch (err: any) {
-      setError(err.message)
-    }
-  }, [])
-
-  const addCalibrationPoint = useCallback(async (
+  const submitCalibration = useCallback(async (
     deviceId: string,
-    volumeStep: number,
-    leakageDb: number,
-    ambientDb: number
-  ) => {
-    try {
-      const res = await fetch(`/api/devices/${deviceId}/calibration`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ volumeStep, leakageDb, ambientDb }),
-      })
-      if (!res.ok) throw new Error('Failed to save calibration point')
-      const point = await res.json()
-      setDevices(prev => prev.map(d => {
-        if (d.id !== deviceId) return d
-        const existing = d.calibrationPoints.find(p => p.volumeStep === volumeStep)
-        const points = existing
-          ? d.calibrationPoints.map(p => p.volumeStep === volumeStep ? point : p)
-          : [...d.calibrationPoints, point]
-        return { ...d, calibrationPoints: points.sort((a, b) => a.volumeStep - b.volumeStep) }
-      }))
-      return point
-    } catch (err: any) {
-      setError(err.message)
-      return null
-    }
+    points: Array<{ volumeStep: number; leakageDb: number; ambientDb: number }>,
+    note?: string
+  ): Promise<Calibration | null> => {
+    const res = await fetch(`/api/devices/${deviceId}/calibration`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ points, note }),
+    })
+    if (!res.ok) return null
+    const calibration = await res.json()
+    setDevices(prev => prev.map(d => {
+      if (d.id !== deviceId) return d
+      return { ...d, calibrations: [calibration, ...d.calibrations] }
+    }))
+    return calibration
   }, [])
 
-  const clearCalibration = useCallback(async (deviceId: string) => {
-    try {
-      const res = await fetch(`/api/devices/${deviceId}/calibration`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('Failed to clear calibration')
-      setDevices(prev => prev.map(d =>
-        d.id === deviceId ? { ...d, calibrationPoints: [] } : d
-      ))
-    } catch (err: any) {
-      setError(err.message)
-    }
+  const vote = useCallback(async (calibrationId: string, value: 1 | -1) => {
+    const res = await fetch(`/api/calibrations/${calibrationId}/vote`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value }),
+    })
+    return res.ok
   }, [])
 
-  return { devices, loading, error, fetchDevices, createDevice, deleteDevice, addCalibrationPoint, clearCalibration }
+  return { devices, loading, fetchDevices, createDevice, submitCalibration, vote }
 }
