@@ -1,36 +1,105 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# VolumeGuard
 
-## Getting Started
+A headphone leakage calibration and real-time monitoring PWA. Calibrate your headphones once — then VolumeGuard tells you the maximum volume you can listen at without others hearing your music.
 
-First, run the development server:
+## How it works
+
+1. **Add a device** — create a profile for your headphones (e.g. "AirPods Pro", "Sony WH-1000XM5")
+2. **Calibrate** — measure how much sound leaks out at each volume step, either with a helper or solo
+3. **Monitor** — the app continuously reads ambient noise via the microphone and displays the highest volume that stays below the leakage threshold
+
+The leakage threshold is defined as **ambient dB + 3 dB** — the point at which sound becomes noticeable above background noise.
+
+## Features
+
+- **Real-time dB meter** — rolling average over 10 frames, updated every 500 ms
+- **Traffic light indicator** — green / yellow / red based on how close you are to the threshold
+- **Live graph** — last 30 seconds of ambient noise
+- **Manual calibration** — step-by-step wizard with a helper who confirms audibility at each volume step
+- **Auto calibration** — solo mode: place the phone near the ear cup, app records dB at each step automatically
+- **Device profiles** — stored in SQLite via Prisma, multiple devices supported
+- **PWA** — installable on iPhone via "Add to Home Screen", works offline for core features
+
+## Tech stack
+
+- [Next.js 16](https://nextjs.org) (App Router) · TypeScript · Tailwind CSS v4
+- [Prisma](https://prisma.io) + SQLite
+- Web Audio API (`AudioContext` + `AnalyserNode`)
+- Service Worker for offline support and PWA installability
+
+## Getting started
 
 ```bash
+# Install dependencies
+npm install
+
+# Set up the database
+npx prisma db push
+
+# Seed demo devices (AirPods Pro, Sony WH-1000XM5, Bose QC45)
+npx prisma db seed
+
+# Run the dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+> **Note:** Microphone access is required. On iOS Safari, the AudioContext is resumed after the first user gesture — tap "Start Monitoring" to activate it.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Project structure
 
-## Learn More
+```
+app/
+  page.tsx                  # Monitor screen (home)
+  calibrate/                # Calibration flows
+    page.tsx                # Mode selector
+    ManualCalibration.tsx   # Helper-assisted wizard
+    AutoCalibration.tsx     # Solo auto mode
+  devices/page.tsx          # Device CRUD
+  api/devices/              # REST API routes
+components/
+  BottomNav.tsx             # Monitor / Calibrate / Devices tabs
+  DbMeter.tsx               # Animated level bar
+  DbGraph.tsx               # 30-second canvas graph
+  TrafficLight.tsx          # Green / yellow / red indicator
+hooks/
+  useAudioAnalyzer.ts       # Web Audio API + rolling average
+  useDevices.ts             # Device and calibration state
+lib/
+  audio.ts                  # dB math, leakage interpolation, safe volume calc
+  prisma.ts                 # Prisma singleton
+prisma/
+  schema.prisma             # Device + CalibrationPoint models
+  seed.ts                   # Demo headphone profiles
+public/
+  manifest.json             # PWA manifest
+  sw.js                     # Service worker
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Data model
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```prisma
+Device {
+  id        String
+  name      String @unique
+  calibrationPoints CalibrationPoint[]
+}
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+CalibrationPoint {
+  deviceId    String
+  volumeStep  Int     // 0–100
+  leakageDb   Float   // measured external dB at this volume
+  ambientDb   Float   // ambient baseline during calibration
+}
+```
 
-## Deploy on Vercel
+## Scripts
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Command | Description |
+|---|---|
+| `npm run dev` | Start development server |
+| `npm run build` | Production build |
+| `npx prisma db push` | Apply schema to database |
+| `npx prisma db seed` | Seed demo headphone profiles |
+| `npx prisma studio` | Open Prisma database GUI |
