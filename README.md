@@ -1,5 +1,7 @@
 # VolumeGuard
 
+> *Nobody asked to hear your music — but when you listen too loud, you force it on them anyway.*
+
 A headphone leakage calibration and real-time monitoring PWA. Calibrate your headphones once — then VolumeGuard tells you the maximum volume you can listen at without others hearing your music.
 
 ## How it works
