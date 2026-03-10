@@ -47,7 +47,7 @@ export default function MonitorPage() {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">
-          <span className="text-cyan-400">Volume</span>Guard
+          <span className="text-cyan-400">Nobody</span>Asked
         </h1>
         <p className="text-white/40 text-sm">Headphone leakage monitor</p>
       </div>

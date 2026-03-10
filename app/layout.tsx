@@ -7,13 +7,13 @@ import { ServiceWorkerRegistrar } from '@/components/ServiceWorkerRegistrar'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'VolumeGuard',
+  title: 'NobodyAsked',
   description: 'Headphone leakage calibration and monitoring',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'VolumeGuard',
+    title: 'NobodyAsked',
   },
 }
 

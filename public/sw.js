@@ -1,4 +1,4 @@
-// VolumeGuard Service Worker
+// NobodyAsked Service Worker
 const CACHE_NAME = 'volumeguard-v1'
 const STATIC_ASSETS = [
   '/',

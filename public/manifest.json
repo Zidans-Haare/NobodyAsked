@@ -1,6 +1,6 @@
 {
-  "name": "VolumeGuard",
-  "short_name": "VolumeGuard",
+  "name": "NobodyAsked",
+  "short_name": "NobodyAsked",
   "description": "Headphone leakage calibration and monitoring",
   "start_url": "/",
   "display": "standalone",

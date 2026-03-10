@@ -9,7 +9,8 @@
       "Bash(python3:*)",
       "Bash(./node_modules/.bin/prisma:*)",
       "Bash(npm run:*)",
-      "Bash(git mv:*)"
+      "Bash(git mv:*)",
+      "Bash(git:*)"
     ]
   }
 }

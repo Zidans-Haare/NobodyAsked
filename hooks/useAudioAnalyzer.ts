@@ -36,7 +36,7 @@ export function useAudioAnalyzer({ updateInterval = 500, enabled = true }: UseAu
     } catch (err: any) {
       setMicStatus('error')
       if (err.name === 'NotAllowedError') {
-        setError('Microphone access denied. Please allow microphone access to use VolumeGuard.')
+        setError('Microphone access denied. Please allow microphone access to use NobodyAsked.')
       } else if (err.name === 'NotFoundError') {
         setError('No microphone found. Please connect a microphone.')
       } else {
